@@ -1,0 +1,1 @@
+setwd("~/Documents/OnCampusJob/analisis-decesos-covid-19")
