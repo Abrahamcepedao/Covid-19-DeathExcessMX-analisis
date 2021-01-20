@@ -41,8 +41,7 @@ dataDef19$MES_NUM <- as.numeric(substr(dataDef19$FECHA_DEFUNCION,6,7))
                                 
 #Estados Data
 estados <- as.data.frame(read_xlsx("csv/Catalogos_Exceso_Mortalidad_2020.xlsx", sheet = "Estados"))
-
-                                                                
+estados <- estados[estados$CLAVE_ENTIDAD < 33,]                                                                
 #Meses Data
 mesesData <- data.frame(
   Meses <- c("Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre")
@@ -50,6 +49,52 @@ mesesData <- data.frame(
 colnames(mesesData) <- c("Meses")
 meses <- c("Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre")
 
+#Main Data
+est <- data.frame(
+  Ent <- estados$ENTIDAD_FEDERATIVA
+)
+colnames(est) <- c("Entidad")
+
+nac <- data.frame(
+  Ent <- c("Nacional")
+)
+colnames(nac) <- c("Entidad")
+
+entidades <- rbind(nac, est)
+
+mainData <- data.frame(
+  Entidades <- entidades$Entidad,
+  Excedente <- rep(0, 33)
+)
+colnames(mainData) <- c("Entidades", "Excedente")
+mainData$Excedente[1] <- length(dataDef$ENTIDAD_REG) - length(dataDef19$ent_regis)
+
+#<----------Nacional - 1 - mes----------->
+nacional <- data.frame(table(dataDef$MES_NUM))
+colnames(nacional) <- c("Mes", "Decesos")
+nacional$Mes <- mesesData$Meses
+nacional$Mes <- mesesData$Meses
+nacional$Mes <- factor(nacional$Mes, levels = meses)
+nacional <-  data.frame(nacional[order(nacional$Mes),])
+nacional$Mes <- factor(nacional$Mes, levels = rev(nacional$Mes))
+
+nacional19 <- data.frame(table(dataDef19$MES_NUM))
+colnames(nacional19) <- c("Mes", "Decesos")
+nacional19 <- nacional19[as.numeric(nacional19$Mes) < 12,]
+nacional19$Mes <- mesesData$Meses
+
+#get percentages
+porNac <- data.frame(round((as.numeric(nacional$Decesos)/as.numeric(nacional19$Decesos)*100-100),1))
+colnames(porNac) <- c("Porcentaje")
+
+#plot
+ggplot(nacional, aes(fill=Mes, y=as.numeric(Decesos), x=Mes)) + 
+  geom_bar(stat="identity", width=0.7, color="white", fill = getPalette(length(nacional$Mes))) +
+  geom_text(aes(label = paste(porNac$Porcentaje, "%", sep="")), hjust = -0.1, size=4) +
+  xlab("Mes") + ylab("Excedente de decesos (número de personas)") + coord_flip() +
+  ggtitle("Excedente de decesos por mes Nacional") +
+  theme(plot.title = element_text(lineheight=.8, face="bold", size = 18)) +
+  theme(text = element_text(size=15)) + theme(legend.position="none")
 
 #<----------Aguascalientes - 1 - mes----------->
 EST <- data.frame(dataDef[dataDef$ENTIDAD_REG == 1,])
@@ -80,10 +125,13 @@ colnames(mesPorExEst) <- c("Porcentage")
 ggplot(estado, aes(fill=Mes, y=as.numeric(Decesos), x=Mes)) + 
   geom_bar(stat="identity", width=0.7, color="white", fill = getPalette(length(estado$Mes))) +
   geom_text(aes(label = paste(mesPorExEst$Porcentage, "%", sep="")), hjust = -0.1, size=4) +
-  xlab("Mes") + ylab("Excedente de decesos") + coord_flip() +
+  xlab("Mes") + ylab("Excedente de decesos (número de personas)") + coord_flip() +
   ggtitle("Excedente de decesos por mes en Aguascalientes") +
   theme(plot.title = element_text(lineheight=.8, face="bold", size = 18)) +
   theme(text = element_text(size=15)) + theme(legend.position="none")
+
+#get excedente
+mainData$Excedente[2] <- sum(estado$Decesos) - sum(estado19$Decesos)
 
 #<----------Baja California - 2 - mes----------->
 EST <- data.frame(dataDef[dataDef$ENTIDAD_REG == 2,])
@@ -114,10 +162,13 @@ colnames(mesPorExEst) <- c("Porcentage")
 ggplot(estado, aes(fill=Mes, y=as.numeric(Decesos), x=Mes)) + 
   geom_bar(stat="identity", width=0.7, color="white", fill = getPalette(length(estado$Mes))) +
   geom_text(aes(label = paste(mesPorExEst$Porcentage, "%", sep="")), hjust = -0.1, size=4) +
-  xlab("Mes") + ylab("Excedente de decesos") + coord_flip() +
+  xlab("Mes") + ylab("Excedente de decesos (número de personas)") + coord_flip() +
   ggtitle("Excedente de decesos por mes en Baja California") +
   theme(plot.title = element_text(lineheight=.8, face="bold", size = 18)) +
   theme(text = element_text(size=15)) + theme(legend.position="none")
+
+#get excedente
+mainData$Excedente[3] <- sum(estado$Decesos) - sum(estado19$Decesos)
 
 #<----------Baja California Sur - 3 - mes----------->
 EST <- data.frame(dataDef[dataDef$ENTIDAD_REG == 3,])
@@ -148,10 +199,13 @@ colnames(mesPorExEst) <- c("Porcentage")
 ggplot(estado, aes(fill=Mes, y=as.numeric(Decesos), x=Mes)) + 
   geom_bar(stat="identity", width=0.7, color="white", fill = getPalette(length(estado$Mes))) +
   geom_text(aes(label = paste(mesPorExEst$Porcentage, "%", sep="")), hjust = -0.1, size=4) +
-  xlab("Mes") + ylab("Excedente de decesos") + coord_flip() +
+  xlab("Mes") + ylab("Excedente de decesos (número de personas)") + coord_flip() +
   ggtitle("Excedente de decesos por mes en Baja California Sur") +
   theme(plot.title = element_text(lineheight=.8, face="bold", size = 18)) +
   theme(text = element_text(size=15)) + theme(legend.position="none")
+
+#get excedente
+mainData$Excedente[4] <- sum(estado$Decesos) - sum(estado19$Decesos)
 
 #<----------Campeche - 4 - mes----------->
 EST <- data.frame(dataDef[dataDef$ENTIDAD_REG == 4,])
@@ -182,10 +236,13 @@ colnames(mesPorExEst) <- c("Porcentage")
 ggplot(estado, aes(fill=Mes, y=as.numeric(Decesos), x=Mes)) + 
   geom_bar(stat="identity", width=0.7, color="white", fill = getPalette(length(estado$Mes))) +
   geom_text(aes(label = paste(mesPorExEst$Porcentage, "%", sep="")), hjust = -0.1, size=4) +
-  xlab("Mes") + ylab("Excedente de decesos") + coord_flip() +
+  xlab("Mes") + ylab("Excedente de decesos (número de personas)") + coord_flip() +
   ggtitle("Excedente de decesos por mes en Campeche") +
   theme(plot.title = element_text(lineheight=.8, face="bold", size = 18)) +
   theme(text = element_text(size=15)) + theme(legend.position="none")
+
+#get excedente
+mainData$Excedente[5] <- sum(estado$Decesos) - sum(estado19$Decesos)
 
 #<----------Coahuila - 5 - mes----------->
 EST <- data.frame(dataDef[dataDef$ENTIDAD_REG == 5,])
@@ -216,10 +273,13 @@ colnames(mesPorExEst) <- c("Porcentage")
 ggplot(estado, aes(fill=Mes, y=as.numeric(Decesos), x=Mes)) + 
   geom_bar(stat="identity", width=0.7, color="white", fill = getPalette(length(estado$Mes))) +
   geom_text(aes(label = paste(mesPorExEst$Porcentage, "%", sep="")), hjust = -0.1, size=4) +
-  xlab("Mes") + ylab("Excedente de decesos") + coord_flip() +
+  xlab("Mes") + ylab("Excedente de decesos (número de personas)") + coord_flip() +
   ggtitle("Excedente de decesos por mes en Coahuila") +
   theme(plot.title = element_text(lineheight=.8, face="bold", size = 18)) +
   theme(text = element_text(size=15)) + theme(legend.position="none")
+
+#get excedente
+mainData$Excedente[6] <- sum(estado$Decesos) - sum(estado19$Decesos)
 
 #<----------Colima - 6 - mes----------->
 EST <- data.frame(dataDef[dataDef$ENTIDAD_REG == 6,])
@@ -250,10 +310,13 @@ colnames(mesPorExEst) <- c("Porcentage")
 ggplot(estado, aes(fill=Mes, y=as.numeric(Decesos), x=Mes)) + 
   geom_bar(stat="identity", width=0.7, color="white", fill = getPalette(length(estado$Mes))) +
   geom_text(aes(label = paste(mesPorExEst$Porcentage, "%", sep="")), hjust = -0.1, size=4) +
-  xlab("Mes") + ylab("Excedente de decesos") + coord_flip() +
+  xlab("Mes") + ylab("Excedente de decesos (número de personas)") + coord_flip() +
   ggtitle("Excedente de decesos por mes en Colima") +
   theme(plot.title = element_text(lineheight=.8, face="bold", size = 18)) +
   theme(text = element_text(size=15)) + theme(legend.position="none")
+
+#get excedente
+mainData$Excedente[7] <- sum(estado$Decesos) - sum(estado19$Decesos)
 
 #<----------Chiapas - 7 - mes----------->
 EST <- data.frame(dataDef[dataDef$ENTIDAD_REG == 7,])
@@ -284,10 +347,13 @@ colnames(mesPorExEst) <- c("Porcentage")
 ggplot(estado, aes(fill=Mes, y=as.numeric(Decesos), x=Mes)) + 
   geom_bar(stat="identity", width=0.7, color="white", fill = getPalette(length(estado$Mes))) +
   geom_text(aes(label = paste(mesPorExEst$Porcentage, "%", sep="")), hjust = -0.1, size=4) +
-  xlab("Mes") + ylab("Excedente de decesos") + coord_flip() +
+  xlab("Mes") + ylab("Excedente de decesos (número de personas)") + coord_flip() +
   ggtitle("Excedente de decesos por mes en Chiapas") +
   theme(plot.title = element_text(lineheight=.8, face="bold", size = 18)) +
   theme(text = element_text(size=15)) + theme(legend.position="none")
+
+#get excedente
+mainData$Excedente[8] <- sum(estado$Decesos) - sum(estado19$Decesos)
 
 #<----------Chihuahua - 8 - mes----------->
 EST <- data.frame(dataDef[dataDef$ENTIDAD_REG == 8,])
@@ -318,10 +384,13 @@ colnames(mesPorExEst) <- c("Porcentage")
 ggplot(estado, aes(fill=Mes, y=as.numeric(Decesos), x=Mes)) + 
   geom_bar(stat="identity", width=0.7, color="white", fill = getPalette(length(estado$Mes))) +
   geom_text(aes(label = paste(mesPorExEst$Porcentage, "%", sep="")), hjust = -0.1, size=4) +
-  xlab("Mes") + ylab("Excedente de decesos") + coord_flip() +
+  xlab("Mes") + ylab("Excedente de decesos (número de personas)") + coord_flip() +
   ggtitle("Excedente de decesos por mes en Chihuahua") +
   theme(plot.title = element_text(lineheight=.8, face="bold", size = 18)) +
   theme(text = element_text(size=15)) + theme(legend.position="none")
+
+#get excedente
+mainData$Excedente[9] <- sum(estado$Decesos) - sum(estado19$Decesos)
 
 #<----------CDMX - 9 - mes----------->
 EST <- data.frame(dataDef[dataDef$ENTIDAD_REG == 9,])
@@ -352,10 +421,13 @@ colnames(mesPorExEst) <- c("Porcentage")
 ggplot(estado, aes(fill=Mes, y=as.numeric(Decesos), x=Mes)) + 
   geom_bar(stat="identity", width=0.7, color="white", fill = getPalette(length(estado$Mes))) +
   geom_text(aes(label = paste(mesPorExEst$Porcentage, "%", sep="")), hjust = -0.1, size=4) +
-  xlab("Mes") + ylab("Excedente de decesos") + coord_flip() +
+  xlab("Mes") + ylab("Excedente de decesos (número de personas)") + coord_flip() +
   ggtitle("Excedente de decesos por mes en CDMX") +
   theme(plot.title = element_text(lineheight=.8, face="bold", size = 18)) +
   theme(text = element_text(size=15)) + theme(legend.position="none")
+
+#get excedente
+mainData$Excedente[10] <- sum(estado$Decesos) - sum(estado19$Decesos)
 
 #<----------Durango - 10 - mes----------->
 EST <- data.frame(dataDef[dataDef$ENTIDAD_REG == 10,])
@@ -386,10 +458,13 @@ colnames(mesPorExEst) <- c("Porcentage")
 ggplot(estado, aes(fill=Mes, y=as.numeric(Decesos), x=Mes)) + 
   geom_bar(stat="identity", width=0.7, color="white", fill = getPalette(length(estado$Mes))) +
   geom_text(aes(label = paste(mesPorExEst$Porcentage, "%", sep="")), hjust = -0.1, size=4) +
-  xlab("Mes") + ylab("Excedente de decesos") + coord_flip() +
+  xlab("Mes") + ylab("Excedente de decesos (número de personas)") + coord_flip() +
   ggtitle("Excedente de decesos por mes en Durango") +
   theme(plot.title = element_text(lineheight=.8, face="bold", size = 18)) +
   theme(text = element_text(size=15)) + theme(legend.position="none")
+
+#get excedente
+mainData$Excedente[11] <- sum(estado$Decesos) - sum(estado19$Decesos)
 
 #<----------Guanajuato - 11 - mes----------->
 EST <- data.frame(dataDef[dataDef$ENTIDAD_REG == 11,])
@@ -420,10 +495,13 @@ colnames(mesPorExEst) <- c("Porcentage")
 ggplot(estado, aes(fill=Mes, y=as.numeric(Decesos), x=Mes)) + 
   geom_bar(stat="identity", width=0.7, color="white", fill = getPalette(length(estado$Mes))) +
   geom_text(aes(label = paste(mesPorExEst$Porcentage, "%", sep="")), hjust = -0.1, size=4) +
-  xlab("Mes") + ylab("Excedente de decesos") + coord_flip() +
+  xlab("Mes") + ylab("Excedente de decesos (número de personas)") + coord_flip() +
   ggtitle("Excedente de decesos por mes en Guanajuato") +
   theme(plot.title = element_text(lineheight=.8, face="bold", size = 18)) +
   theme(text = element_text(size=15)) + theme(legend.position="none")
+
+#get excedente
+mainData$Excedente[12] <- sum(estado$Decesos) - sum(estado19$Decesos)
 
 #<----------Guerrero - 12 - mes----------->
 EST <- data.frame(dataDef[dataDef$ENTIDAD_REG == 12,])
@@ -454,10 +532,13 @@ colnames(mesPorExEst) <- c("Porcentage")
 ggplot(estado, aes(fill=Mes, y=as.numeric(Decesos), x=Mes)) + 
   geom_bar(stat="identity", width=0.7, color="white", fill = getPalette(length(estado$Mes))) +
   geom_text(aes(label = paste(mesPorExEst$Porcentage, "%", sep="")), hjust = -0.1, size=4) +
-  xlab("Mes") + ylab("Excedente de decesos") + coord_flip() +
+  xlab("Mes") + ylab("Excedente de decesos (número de personas)") + coord_flip() +
   ggtitle("Excedente de decesos por mes en Guerrero") +
   theme(plot.title = element_text(lineheight=.8, face="bold", size = 18)) +
   theme(text = element_text(size=15)) + theme(legend.position="none")
+
+#get excedente
+mainData$Excedente[13] <- sum(estado$Decesos) - sum(estado19$Decesos)
 
 #<----------Hidalgo - 19 - mes----------->
 EST <- data.frame(dataDef[dataDef$ENTIDAD_REG == 13,])
@@ -488,10 +569,13 @@ colnames(mesPorExEst) <- c("Porcentage")
 ggplot(estado, aes(fill=Mes, y=as.numeric(Decesos), x=Mes)) + 
   geom_bar(stat="identity", width=0.7, color="white", fill = getPalette(length(estado$Mes))) +
   geom_text(aes(label = paste(mesPorExEst$Porcentage, "%", sep="")), hjust = -0.1, size=4) +
-  xlab("Mes") + ylab("Excedente de decesos") + coord_flip() +
+  xlab("Mes") + ylab("Excedente de decesos (número de personas)") + coord_flip() +
   ggtitle("Excedente de decesos por mes en Hidalgo") +
   theme(plot.title = element_text(lineheight=.8, face="bold", size = 18)) +
   theme(text = element_text(size=15)) + theme(legend.position="none")
+
+#get excedente
+mainData$Excedente[14] <- sum(estado$Decesos) - sum(estado19$Decesos)
 
 #<----------Jalisco - 14 - mes----------->
 EST <- data.frame(dataDef[dataDef$ENTIDAD_REG == 14,])
@@ -522,10 +606,13 @@ colnames(mesPorExEst) <- c("Porcentage")
 ggplot(estado, aes(fill=Mes, y=as.numeric(Decesos), x=Mes)) + 
   geom_bar(stat="identity", width=0.7, color="white", fill = getPalette(length(estado$Mes))) +
   geom_text(aes(label = paste(mesPorExEst$Porcentage, "%", sep="")), hjust = -0.1, size=4) +
-  xlab("Mes") + ylab("Excedente de decesos") + coord_flip() +
+  xlab("Mes") + ylab("Excedente de decesos (número de personas)") + coord_flip() +
   ggtitle("Excedente de decesos por mes en Jalisco") +
   theme(plot.title = element_text(lineheight=.8, face="bold", size = 18)) +
   theme(text = element_text(size=15)) + theme(legend.position="none")
+
+#get excedente
+mainData$Excedente[15] <- sum(estado$Decesos) - sum(estado19$Decesos)
 
 #<----------EDOMEX - 15 - mes----------->
 EST <- data.frame(dataDef[dataDef$ENTIDAD_REG == 15,])
@@ -556,10 +643,13 @@ colnames(mesPorExEst) <- c("Porcentage")
 ggplot(estado, aes(fill=Mes, y=as.numeric(Decesos), x=Mes)) + 
   geom_bar(stat="identity", width=0.7, color="white", fill = getPalette(length(estado$Mes))) +
   geom_text(aes(label = paste(mesPorExEst$Porcentage, "%", sep="")), hjust = -0.1, size=4) +
-  xlab("Mes") + ylab("Excedente de decesos") + coord_flip() +
+  xlab("Mes") + ylab("Excedente de decesos (número de personas)") + coord_flip() +
   ggtitle("Excedente de decesos por mes en EDOMEX") +
   theme(plot.title = element_text(lineheight=.8, face="bold", size = 18)) +
   theme(text = element_text(size=15)) + theme(legend.position="none")
+
+#get excedente
+mainData$Excedente[16] <- sum(estado$Decesos) - sum(estado19$Decesos)
 
 #<----------Michoacán - 16 - mes----------->
 EST <- data.frame(dataDef[dataDef$ENTIDAD_REG == 16,])
@@ -590,10 +680,13 @@ colnames(mesPorExEst) <- c("Porcentage")
 ggplot(estado, aes(fill=Mes, y=as.numeric(Decesos), x=Mes)) + 
   geom_bar(stat="identity", width=0.7, color="white", fill = getPalette(length(estado$Mes))) +
   geom_text(aes(label = paste(mesPorExEst$Porcentage, "%", sep="")), hjust = -0.1, size=4) +
-  xlab("Mes") + ylab("Excedente de decesos") + coord_flip() +
+  xlab("Mes") + ylab("Excedente de decesos (número de personas)") + coord_flip() +
   ggtitle("Excedente de decesos por mes en Michoacán") +
   theme(plot.title = element_text(lineheight=.8, face="bold", size = 18)) +
   theme(text = element_text(size=15)) + theme(legend.position="none")
+
+#get excedente
+mainData$Excedente[17] <- sum(estado$Decesos) - sum(estado19$Decesos)
 
 #<----------Morelos - 17 - mes----------->
 EST <- data.frame(dataDef[dataDef$ENTIDAD_REG == 17,])
@@ -624,10 +717,13 @@ colnames(mesPorExEst) <- c("Porcentage")
 ggplot(estado, aes(fill=Mes, y=as.numeric(Decesos), x=Mes)) + 
   geom_bar(stat="identity", width=0.7, color="white", fill = getPalette(length(estado$Mes))) +
   geom_text(aes(label = paste(mesPorExEst$Porcentage, "%", sep="")), hjust = -0.1, size=4) +
-  xlab("Mes") + ylab("Excedente de decesos") + coord_flip() +
+  xlab("Mes") + ylab("Excedente de decesos (número de personas)") + coord_flip() +
   ggtitle("Excedente de decesos por mes en Morelos") +
   theme(plot.title = element_text(lineheight=.8, face="bold", size = 18)) +
   theme(text = element_text(size=15)) + theme(legend.position="none")
+
+#get excedente
+mainData$Excedente[18] <- sum(estado$Decesos) - sum(estado19$Decesos)
 
 #<----------Nayarit - 18 - mes----------->
 EST <- data.frame(dataDef[dataDef$ENTIDAD_REG == 18,])
@@ -658,10 +754,13 @@ colnames(mesPorExEst) <- c("Porcentage")
 ggplot(estado, aes(fill=Mes, y=as.numeric(Decesos), x=Mes)) + 
   geom_bar(stat="identity", width=0.7, color="white", fill = getPalette(length(estado$Mes))) +
   geom_text(aes(label = paste(mesPorExEst$Porcentage, "%", sep="")), hjust = -0.1, size=4) +
-  xlab("Mes") + ylab("Excedente de decesos") + coord_flip() +
+  xlab("Mes") + ylab("Excedente de decesos (número de personas)") + coord_flip() +
   ggtitle("Excedente de decesos por mes en Nayarit") +
   theme(plot.title = element_text(lineheight=.8, face="bold", size = 18)) +
   theme(text = element_text(size=15)) + theme(legend.position="none")
+
+#get excedente
+mainData$Excedente[19] <- sum(estado$Decesos) - sum(estado19$Decesos)
 
 #<----------Nuevo León - 19 - mes----------->
 EST <- data.frame(dataDef[dataDef$ENTIDAD_REG == 19,])
@@ -692,10 +791,13 @@ colnames(mesPorExEst) <- c("Porcentage")
 ggplot(estado, aes(fill=Mes, y=as.numeric(Decesos), x=Mes)) + 
   geom_bar(stat="identity", width=0.7, color="white", fill = getPalette(length(estado$Mes))) +
   geom_text(aes(label = paste(mesPorExEst$Porcentage, "%", sep="")), hjust = -0.1, size=4) +
-  xlab("Mes") + ylab("Excedente de decesos") + coord_flip() +
+  xlab("Mes") + ylab("Excedente de decesos (número de personas)") + coord_flip() +
   ggtitle("Excedente de decesos por mes en Nuevo León") +
   theme(plot.title = element_text(lineheight=.8, face="bold", size = 18)) +
   theme(text = element_text(size=15)) + theme(legend.position="none")
+
+#get excedente
+mainData$Excedente[20] <- sum(estado$Decesos) - sum(estado19$Decesos)
 
 #<----------Oaxaca - 20 - mes----------->
 EST <- data.frame(dataDef[dataDef$ENTIDAD_REG == 20,])
@@ -726,10 +828,13 @@ colnames(mesPorExEst) <- c("Porcentage")
 ggplot(estado, aes(fill=Mes, y=as.numeric(Decesos), x=Mes)) + 
   geom_bar(stat="identity", width=0.7, color="white", fill = getPalette(length(estado$Mes))) +
   geom_text(aes(label = paste(mesPorExEst$Porcentage, "%", sep="")), hjust = -0.1, size=4) +
-  xlab("Mes") + ylab("Excedente de decesos") + coord_flip() +
+  xlab("Mes") + ylab("Excedente de decesos (número de personas)") + coord_flip() +
   ggtitle("Excedente de decesos por mes en Oaxaca") +
   theme(plot.title = element_text(lineheight=.8, face="bold", size = 18)) +
   theme(text = element_text(size=15)) + theme(legend.position="none")
+
+#get excedente
+mainData$Excedente[21] <- sum(estado$Decesos) - sum(estado19$Decesos)
 
 #<----------Puebla - 21 - mes----------->
 EST <- data.frame(dataDef[dataDef$ENTIDAD_REG == 21,])
@@ -760,10 +865,13 @@ colnames(mesPorExEst) <- c("Porcentage")
 ggplot(estado, aes(fill=Mes, y=as.numeric(Decesos), x=Mes)) + 
   geom_bar(stat="identity", width=0.7, color="white", fill = getPalette(length(estado$Mes))) +
   geom_text(aes(label = paste(mesPorExEst$Porcentage, "%", sep="")), hjust = -0.1, size=4) +
-  xlab("Mes") + ylab("Excedente de decesos") + coord_flip() +
+  xlab("Mes") + ylab("Excedente de decesos (número de personas)") + coord_flip() +
   ggtitle("Excedente de decesos por mes en Puebla") +
   theme(plot.title = element_text(lineheight=.8, face="bold", size = 18)) +
   theme(text = element_text(size=15)) + theme(legend.position="none")
+
+#get excedente
+mainData$Excedente[22] <- sum(estado$Decesos) - sum(estado19$Decesos)
 
 #<----------Querétaro - 22 - mes----------->
 EST <- data.frame(dataDef[dataDef$ENTIDAD_REG == 22,])
@@ -794,10 +902,13 @@ colnames(mesPorExEst) <- c("Porcentage")
 ggplot(estado, aes(fill=Mes, y=as.numeric(Decesos), x=Mes)) + 
   geom_bar(stat="identity", width=0.7, color="white", fill = getPalette(length(estado$Mes))) +
   geom_text(aes(label = paste(mesPorExEst$Porcentage, "%", sep="")), hjust = -0.1, size=4) +
-  xlab("Mes") + ylab("Excedente de decesos") + coord_flip() +
+  xlab("Mes") + ylab("Excedente de decesos (número de personas)") + coord_flip() +
   ggtitle("Excedente de decesos por mes en Querétaro") +
   theme(plot.title = element_text(lineheight=.8, face="bold", size = 18)) +
   theme(text = element_text(size=15)) + theme(legend.position="none")
+
+#get excedente
+mainData$Excedente[23] <- sum(estado$Decesos) - sum(estado19$Decesos)
 
 #<----------Quintana Roo - 23 - mes----------->
 EST <- data.frame(dataDef[dataDef$ENTIDAD_REG == 23,])
@@ -828,10 +939,13 @@ colnames(mesPorExEst) <- c("Porcentage")
 ggplot(estado, aes(fill=Mes, y=as.numeric(Decesos), x=Mes)) + 
   geom_bar(stat="identity", width=0.7, color="white", fill = getPalette(length(estado$Mes))) +
   geom_text(aes(label = paste(mesPorExEst$Porcentage, "%", sep="")), hjust = -0.1, size=4) +
-  xlab("Mes") + ylab("Excedente de decesos") + coord_flip() +
+  xlab("Mes") + ylab("Excedente de decesos (número de personas)") + coord_flip() +
   ggtitle("Excedente de decesos por mes en Quintana Roo") +
   theme(plot.title = element_text(lineheight=.8, face="bold", size = 18)) +
   theme(text = element_text(size=15)) + theme(legend.position="none")
+
+#get excedente
+mainData$Excedente[24] <- sum(estado$Decesos) - sum(estado19$Decesos)
 
 #<----------San Luis Potosi - 24 - mes----------->
 EST <- data.frame(dataDef[dataDef$ENTIDAD_REG == 24,])
@@ -862,12 +976,15 @@ colnames(mesPorExEst) <- c("Porcentage")
 ggplot(estado, aes(fill=Mes, y=as.numeric(Decesos), x=Mes)) + 
   geom_bar(stat="identity", width=0.7, color="white", fill = getPalette(length(estado$Mes))) +
   geom_text(aes(label = paste(mesPorExEst$Porcentage, "%", sep="")), hjust = -0.1, size=4) +
-  xlab("Mes") + ylab("Excedente de decesos") + coord_flip() +
+  xlab("Mes") + ylab("Excedente de decesos (número de personas)") + coord_flip() +
   ggtitle("Excedente de decesos por mes en San Luis Potosí") +
   theme(plot.title = element_text(lineheight=.8, face="bold", size = 18)) +
   theme(text = element_text(size=15)) + theme(legend.position="none")
 
-#<----------Sinaloa - 19 - mes----------->
+#get excedente
+mainData$Excedente[25] <- sum(estado$Decesos) - sum(estado19$Decesos)
+
+#<----------Sinaloa - 25 - mes----------->
 EST <- data.frame(dataDef[dataDef$ENTIDAD_REG == 25,])
 EST$MES_NUM <- factor(EST$MES_NUM)
 EST <- data.frame(EST[order(EST$MES_NUM),])
@@ -896,10 +1013,13 @@ colnames(mesPorExEst) <- c("Porcentage")
 ggplot(estado, aes(fill=Mes, y=as.numeric(Decesos), x=Mes)) + 
   geom_bar(stat="identity", width=0.7, color="white", fill = getPalette(length(estado$Mes))) +
   geom_text(aes(label = paste(mesPorExEst$Porcentage, "%", sep="")), hjust = -0.1, size=4) +
-  xlab("Mes") + ylab("Excedente de decesos") + coord_flip() +
+  xlab("Mes") + ylab("Excedente de decesos (número de personas)") + coord_flip() +
   ggtitle("Excedente de decesos por mes en Sinaloa") +
   theme(plot.title = element_text(lineheight=.8, face="bold", size = 18)) +
   theme(text = element_text(size=15)) + theme(legend.position="none")
+
+#get excedente
+mainData$Excedente[26] <- sum(estado$Decesos) - sum(estado19$Decesos)
 
 #<----------Sonora - 26 - mes----------->
 EST <- data.frame(dataDef[dataDef$ENTIDAD_REG == 26,])
@@ -930,12 +1050,15 @@ colnames(mesPorExEst) <- c("Porcentage")
 ggplot(estado, aes(fill=Mes, y=as.numeric(Decesos), x=Mes)) + 
   geom_bar(stat="identity", width=0.7, color="white", fill = getPalette(length(estado$Mes))) +
   geom_text(aes(label = paste(mesPorExEst$Porcentage, "%", sep="")), hjust = -0.1, size=4) +
-  xlab("Mes") + ylab("Excedente de decesos") + coord_flip() +
+  xlab("Mes") + ylab("Excedente de decesos (número de personas)") + coord_flip() +
   ggtitle("Excedente de decesos por mes en Sonora") +
   theme(plot.title = element_text(lineheight=.8, face="bold", size = 18)) +
   theme(text = element_text(size=15)) + theme(legend.position="none")
 
-#<----------Tabasco - 19 - mes----------->
+#get excedente
+mainData$Excedente[27] <- sum(estado$Decesos) - sum(estado19$Decesos)
+
+#<----------Tabasco - 27 - mes----------->
 EST <- data.frame(dataDef[dataDef$ENTIDAD_REG == 27,])
 EST$MES_NUM <- factor(EST$MES_NUM)
 EST <- data.frame(EST[order(EST$MES_NUM),])
@@ -964,10 +1087,13 @@ colnames(mesPorExEst) <- c("Porcentage")
 ggplot(estado, aes(fill=Mes, y=as.numeric(Decesos), x=Mes)) + 
   geom_bar(stat="identity", width=0.7, color="white", fill = getPalette(length(estado$Mes))) +
   geom_text(aes(label = paste(mesPorExEst$Porcentage, "%", sep="")), hjust = -0.1, size=4) +
-  xlab("Mes") + ylab("Excedente de decesos") + coord_flip() +
+  xlab("Mes") + ylab("Excedente de decesos (número de personas)") + coord_flip() +
   ggtitle("Excedente de decesos por mes en Tabasco") +
   theme(plot.title = element_text(lineheight=.8, face="bold", size = 18)) +
   theme(text = element_text(size=15)) + theme(legend.position="none")
+
+#get excedente
+mainData$Excedente[28] <- sum(estado$Decesos) - sum(estado19$Decesos)
 
 #<----------Tamaulipas - 28 - mes----------->
 EST <- data.frame(dataDef[dataDef$ENTIDAD_REG == 28,])
@@ -998,10 +1124,13 @@ colnames(mesPorExEst) <- c("Porcentage")
 ggplot(estado, aes(fill=Mes, y=as.numeric(Decesos), x=Mes)) + 
   geom_bar(stat="identity", width=0.7, color="white", fill = getPalette(length(estado$Mes))) +
   geom_text(aes(label = paste(mesPorExEst$Porcentage, "%", sep="")), hjust = -0.1, size=4) +
-  xlab("Mes") + ylab("Excedente de decesos") + coord_flip() +
+  xlab("Mes") + ylab("Excedente de decesos (número de personas)") + coord_flip() +
   ggtitle("Excedente de decesos por mes en Tamaulipas") +
   theme(plot.title = element_text(lineheight=.8, face="bold", size = 18)) +
   theme(text = element_text(size=15)) + theme(legend.position="none")
+
+#get excedente
+mainData$Excedente[29] <- sum(estado$Decesos) - sum(estado19$Decesos)
 
 #<----------Tlaxcala - 29 - mes----------->
 EST <- data.frame(dataDef[dataDef$ENTIDAD_REG == 29,])
@@ -1032,10 +1161,13 @@ colnames(mesPorExEst) <- c("Porcentage")
 ggplot(estado, aes(fill=Mes, y=as.numeric(Decesos), x=Mes)) + 
   geom_bar(stat="identity", width=0.7, color="white", fill = getPalette(length(estado$Mes))) +
   geom_text(aes(label = paste(mesPorExEst$Porcentage, "%", sep="")), hjust = -0.1, size=4) +
-  xlab("Mes") + ylab("Excedente de decesos") + coord_flip() +
+  xlab("Mes") + ylab("Excedente de decesos (número de personas)") + coord_flip() +
   ggtitle("Excedente de decesos por mes en Tlaxcala") +
   theme(plot.title = element_text(lineheight=.8, face="bold", size = 18)) +
   theme(text = element_text(size=15)) + theme(legend.position="none")
+
+#get excedente
+mainData$Excedente[30] <- sum(estado$Decesos) - sum(estado19$Decesos)
 
 #<----------Veracruz - 30 - mes----------->
 EST <- data.frame(dataDef[dataDef$ENTIDAD_REG == 30,])
@@ -1066,10 +1198,13 @@ colnames(mesPorExEst) <- c("Porcentage")
 ggplot(estado, aes(fill=Mes, y=as.numeric(Decesos), x=Mes)) + 
   geom_bar(stat="identity", width=0.7, color="white", fill = getPalette(length(estado$Mes))) +
   geom_text(aes(label = paste(mesPorExEst$Porcentage, "%", sep="")), hjust = -0.1, size=4) +
-  xlab("Mes") + ylab("Excedente de decesos") + coord_flip() +
+  xlab("Mes") + ylab("Excedente de decesos (número de personas)") + coord_flip() +
   ggtitle("Excedente de decesos por mes en Veracruz") +
   theme(plot.title = element_text(lineheight=.8, face="bold", size = 18)) +
   theme(text = element_text(size=15)) + theme(legend.position="none")
+
+#get excedente
+mainData$Excedente[31] <- sum(estado$Decesos) - sum(estado19$Decesos)
 
 #<----------Yucatan - 31 - mes----------->
 EST <- data.frame(dataDef[dataDef$ENTIDAD_REG == 31,])
@@ -1100,10 +1235,13 @@ colnames(mesPorExEst) <- c("Porcentage")
 ggplot(estado, aes(fill=Mes, y=as.numeric(Decesos), x=Mes)) + 
   geom_bar(stat="identity", width=0.7, color="white", fill = getPalette(length(estado$Mes))) +
   geom_text(aes(label = paste(mesPorExEst$Porcentage, "%", sep="")), hjust = -0.1, size=4) +
-  xlab("Mes") + ylab("Excedente de decesos") + coord_flip() +
+  xlab("Mes") + ylab("Excedente de decesos (número de personas)") + coord_flip() +
   ggtitle("Excedente de decesos por mes en Yucatán") +
   theme(plot.title = element_text(lineheight=.8, face="bold", size = 18)) +
   theme(text = element_text(size=15)) + theme(legend.position="none")
+
+#get excedente
+mainData$Excedente[32] <- sum(estado$Decesos) - sum(estado19$Decesos)
 
 #<----------Zacatecas - 32 - mes----------->
 EST <- data.frame(dataDef[dataDef$ENTIDAD_REG == 32,])
@@ -1134,8 +1272,14 @@ colnames(mesPorExEst) <- c("Porcentage")
 ggplot(estado, aes(fill=Mes, y=as.numeric(Decesos), x=Mes)) + 
   geom_bar(stat="identity", width=0.7, color="white", fill = getPalette(length(estado$Mes))) +
   geom_text(aes(label = paste(mesPorExEst$Porcentage, "%", sep="")), hjust = -0.1, size=4) +
-  xlab("Mes") + ylab("Excedente de decesos") + coord_flip() +
+  xlab("Mes") + ylab("Excedente de decesos (número de personas)") + coord_flip() +
   ggtitle("Excedente de decesos por mes en Zacatecas") +
   theme(plot.title = element_text(lineheight=.8, face="bold", size = 18)) +
   theme(text = element_text(size=15)) + theme(legend.position="none")
+
+mainData$Excedente[33] <- sum(estado$Decesos) - sum(estado19$Decesos)
+
+write.csv(mainData, file="csv/mainData.csv")
+
+
 
